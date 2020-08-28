@@ -8,16 +8,18 @@ dotenv.config({ path: './config/config.env' });
 require('./config/db')();
 // Init app
 const app = express();
-// Index route
-app.get('/', (req, res) => {
-	res.json({ msg: 'Welcome to DevCamper API' });
-});
 // Logger
 if (process.env.NODE_ENV === 'development') {
 	app.use(morgan('dev'));
 }
+// Middleware
+app.use(express.json());
 // Routes
 app.use('/api/v1/bootcamps', require('./routes/bootcamps'));
+// Index route
+app.get('/', (req, res) => {
+	res.json({ msg: 'Welcome to DevCamper API' });
+});
 // Listen to port
 const PORT = process.env.PORT || 5000;
 const server = app.listen(PORT, () =>
