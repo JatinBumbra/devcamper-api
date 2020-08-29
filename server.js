@@ -17,6 +17,7 @@ if (process.env.NODE_ENV === 'development') {
 app.use(express.json());
 // Routes
 app.use('/api/v1/bootcamps', require('./routes/bootcamps'));
+app.use('/api/v1/courses', require('./routes/courses'));
 // Middleware
 app.use(errorHandler);
 // Index route
