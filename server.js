@@ -2,6 +2,7 @@ const express = require('express');
 const dotenv = require('dotenv');
 const morgan = require('morgan');
 const colors = require('colors');
+const errorHandler = require('./middleware/errorHandler');
 // Load env variables
 dotenv.config({ path: './config/config.env' });
 // Connect to database
@@ -12,10 +13,12 @@ const app = express();
 if (process.env.NODE_ENV === 'development') {
 	app.use(morgan('dev'));
 }
-// Middleware
+// Body parser
 app.use(express.json());
 // Routes
 app.use('/api/v1/bootcamps', require('./routes/bootcamps'));
+// Middleware
+app.use(errorHandler);
 // Index route
 app.get('/', (req, res) => {
 	res.json({ msg: 'Welcome to DevCamper API' });
