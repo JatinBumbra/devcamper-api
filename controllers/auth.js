@@ -1,6 +1,8 @@
 const ErrorResponse = require('../utils/errorResponse');
 const asyncHandler = require('../middleware/asyncHandler');
 const User = require('../models/User');
+const sendEmail = require('../utils/sendEmail');
+const crypto = require('crypto');
 
 // @route     POST /api/v1/auth/register
 // @desc      Register a user
@@ -36,6 +38,85 @@ exports.login = asyncHandler(async (req, res, next) => {
 	sendTokenResponse(user, 200, res);
 });
 
+// @route     GET /api/v1/auth/me
+// @desc      Get current user
+// @access    Private
+exports.currentUser = asyncHandler(async (req, res, next) => {
+	const user = await User.findById(req.user.id);
+	res.status(200).json({
+		success: true,
+		data: user,
+	});
+});
+
+// @route     POST /api/v1/auth/forgotpassword
+// @desc      Forgot password
+// @access    Public
+exports.forgotPassword = asyncHandler(async (req, res, next) => {
+	const user = await User.findOne({ email: req.body.email });
+	if (!user) {
+		return next(new ErrorResponse(`No user with that email`, 404));
+	}
+	// Get reset token
+	const resetToken = user.getResetToken();
+	await user.save({ validateBeforeSave: false });
+
+	// Create reset URL
+	const resetUrl = `${req.protocol}://${req.get(
+		'host'
+	)}/api/v1/auth/resetpassword/${resetToken}`;
+
+	const message = `You are receiving this email because you (or someone else) has requested for a password reset. Please make a put request to: \n\n ${resetUrl}`;
+
+	try {
+		await sendEmail({
+			email: user.email,
+			subject: 'Password Reset',
+			message,
+		});
+
+		res.status(200).json({ success: true, data: 'Email sent' });
+	} catch (error) {
+		console.log(error);
+		user.resetPasswordToken = undefined;
+		user.resetPasswordExpire = undefined;
+
+		await user.save({ validateBeforeSave: false });
+
+		return next(new ErrorResponse('Email could not be sent', 500));
+	}
+
+	res.status(200).json({
+		success: true,
+		data: user,
+	});
+});
+
+// @route     PUT /api/v1/auth/resetpassword/:token
+// @desc      Reset password
+// @access    Public
+exports.resetPassword = asyncHandler(async (req, res, next) => {
+	// Hash the token and match it with the User
+	const resetPasswordToken = crypto
+		.createHash('sha256')
+		.update(req.params.token)
+		.digest('hex');
+	const user = await User.findOne({
+		resetPasswordToken,
+		resetPasswordExpire: { $gt: Date.now() },
+	});
+	if (!user) {
+		return next(new ErrorResponse('Invalid Token', 400));
+	}
+	// Set new password
+	user.password = req.body.password;
+	user.resetPasswordToken = undefined;
+	user.resetPasswordExpire = undefined;
+	await user.save();
+
+	sendTokenResponse(user, 200, res);
+});
+
 // Get token from model, create cookie and send response
 const sendTokenResponse = (user, statusCode, res) => {
 	// Create token
@@ -55,14 +136,3 @@ const sendTokenResponse = (user, statusCode, res) => {
 		.cookie('token', token, options)
 		.json({ success: true, token });
 };
-
-// @route     POST /api/v1/auth/me
-// @desc      Get current user
-// @access    Private
-exports.currentUser = asyncHandler(async (req, res, next) => {
-	const user = await User.findById(req.user.id);
-	res.status(200).json({
-		success: true,
-		data: user,
-	});
-});
