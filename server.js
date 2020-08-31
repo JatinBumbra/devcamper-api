@@ -56,7 +56,7 @@ app.use('/api/v1/reviews', require('./routes/reviews'));
 app.use(errorHandler);
 // Index route
 app.get('/', (req, res) => {
-	res.json({ msg: 'Welcome to DevCamper API' });
+	res.send('./public/index.html');
 });
 // Listen to port
 const PORT = process.env.PORT || 5000;
