@@ -4,6 +4,12 @@ const dotenv = require('dotenv');
 const morgan = require('morgan');
 const colors = require('colors');
 const fileupload = require('express-fileupload');
+const mongoSanitize = require('helmet');
+const helmet = require('express-mongo-sanitize');
+const xss = require('xss-clean');
+const rateLimit = require('express-rate-limit');
+const hpp = require('hpp');
+const cors = require('cors');
 const cookieParser = require('cookie-parser');
 const errorHandler = require('./middleware/errorHandler');
 // Load env variables
@@ -24,6 +30,22 @@ app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 // File upload
 app.use(fileupload());
+// Sanitize mongo queries
+app.use(mongoSanitize());
+// Set security headers
+app.use(helmet());
+// Prevent XSS attacks
+app.use(xss());
+// Rate limiting
+const limiter = rateLimit({
+	windowMs: 10 * 60 * 1000,
+	max: 100,
+});
+app.use(limiter);
+// Prevent HPP
+app.use(hpp());
+// Enable CORS
+app.use(cors());
 // Routes
 app.use('/api/v1/bootcamps', require('./routes/bootcamps'));
 app.use('/api/v1/courses', require('./routes/courses'));
