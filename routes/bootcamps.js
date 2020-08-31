@@ -15,6 +15,8 @@ const { protect, authorize } = require('../middleware/auth');
 // Include other resource router
 const courseRouter = require('./courses');
 router.use('/:bootcampId/courses', courseRouter);
+const reviewRouter = require('./reviews');
+router.use('/:bootcampId/reviews', reviewRouter);
 
 router.route('/radius/:zipcode/:distance').get(getBootcampsByRadius);
 
